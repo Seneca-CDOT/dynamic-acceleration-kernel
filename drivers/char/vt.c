@@ -102,6 +102,7 @@
 #include <linux/notifier.h>
 #include <linux/device.h>
 #include <linux/io.h>
+#include <linux/dynaccel.h>
 #include <linux/nospec.h>
 #include <asm/system.h>
 #include <linux/uaccess.h>
@@ -2879,7 +2880,7 @@ static int __init con_init(void)
 
 	if (blankinterval) {
 		blank_state = blank_normal_wait;
-		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
+		mod_timer(&console_timer, jiffies + (blankinterval * HZ) * speedup_ratio);
 	}
 
 	for (currcons = 0; currcons < MIN_NR_CONSOLES; currcons++) {
@@ -3717,7 +3718,7 @@ void do_blank_screen(int entering_gfx)
 
 	if (vesa_off_interval && vesa_blank_mode) {
 		blank_state = blank_vesa_wait;
-		mod_timer(&console_timer, jiffies + vesa_off_interval);
+		mod_timer(&console_timer, jiffies + vesa_off_interval * speedup_ratio);
 	}
 	vt_event_post(VT_EVENT_BLANK, vc->vc_num, vc->vc_num);
 }
@@ -3753,7 +3754,7 @@ void do_unblank_screen(int leaving_gfx)
 		return; /* but leave console_blanked != 0 */
 
 	if (blankinterval) {
-		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
+		mod_timer(&console_timer, jiffies + (blankinterval * HZ) * speedup_ratio);
 		blank_state = blank_normal_wait;
 	}
 
@@ -3788,7 +3789,7 @@ void unblank_screen(void)
 static void blank_screen_t(unsigned long dummy)
 {
 	if (unlikely(!keventd_up())) {
-		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
+		mod_timer(&console_timer, jiffies + (blankinterval * HZ) * speedup_ratio);
 		return;
 	}
 	blank_timer_expired = 1;
@@ -3818,7 +3819,7 @@ void poke_blanked_console(void)
 	if (console_blanked)
 		unblank_screen();
 	else if (blankinterval) {
-		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
+		mod_timer(&console_timer, jiffies + (blankinterval * HZ) * speedup_ratio);
 		blank_state = blank_normal_wait;
 	}
 }
