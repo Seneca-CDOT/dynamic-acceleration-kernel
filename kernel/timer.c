@@ -39,6 +39,7 @@
 #include <linux/kallsyms.h>
 #include <linux/irq_work.h>
 #include <linux/sched.h>
+#include <linux/dynaccel.h>
 
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
@@ -50,8 +51,10 @@
 #include <trace/events/timer.h>
 
 u64 jiffies_64 __cacheline_aligned_in_smp = INITIAL_JIFFIES;
+unsigned int speedup_ratio = DEFAULT_SPEEDUP_RATIO;
 
 EXPORT_SYMBOL(jiffies_64);
+EXPORT_SYMBOL(speedup_ratio);
 
 /*
  * per-CPU timer vector definitions:
@@ -1387,7 +1390,7 @@ signed long __sched schedule_timeout(signed long timeout)
 		}
 	}
 
-	expire = timeout + jiffies;
+	expire = (timeout * speedup_ratio) + jiffies;
 
 	setup_timer_on_stack(&timer, process_timeout, (unsigned long)current);
 	__mod_timer(&timer, expire, false, TIMER_NOT_PINNED);
