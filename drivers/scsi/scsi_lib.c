@@ -19,6 +19,7 @@
 #include <linux/delay.h>
 #include <linux/hardirq.h>
 #include <linux/scatterlist.h>
+#include <linux/dynaccel.h>
 #include <linux/ratelimit.h>
 
 #include <scsi/scsi.h>
@@ -1501,7 +1502,7 @@ static void scsi_softirq_done(struct request *rq)
 
 	disposition = scsi_decide_disposition(cmd);
 	if (disposition != SUCCESS &&
-	    time_before(cmd->jiffies_at_alloc + wait_for, jiffies)) {
+	    time_before(cmd->jiffies_at_alloc + wait_for * speedup_ratio, jiffies)) {
 		sdev_printk(KERN_ERR, cmd->device,
 			    "timing out command, waited %lus\n",
 			    wait_for/HZ);
@@ -2437,7 +2438,7 @@ scsi_device_quiesce(struct scsi_device *sdev)
 
 	scsi_run_queue(sdev->request_queue);
 	while (sdev->device_busy) {
-		msleep_interruptible(200);
+		msleep_interruptible(200 * speedup_ratio);
 		scsi_run_queue(sdev->request_queue);
 	}
 	return 0;
