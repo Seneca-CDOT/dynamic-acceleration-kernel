@@ -30,6 +30,7 @@
 #include <linux/mutex.h>
 #include <linux/scatterlist.h>
 #include <linux/string_helpers.h>
+#include <linux/dynaccel.h>
 
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
@@ -184,8 +185,8 @@ static u32 mmc_sd_num_wr_blocks(struct mmc_card *card)
 
 	memset(&data, 0, sizeof(struct mmc_data));
 
-	data.timeout_ns = card->csd.tacc_ns * 100;
-	data.timeout_clks = card->csd.tacc_clks * 100;
+	data.timeout_ns = card->csd.tacc_ns * 100 * speedup_ratio;
+	data.timeout_clks = card->csd.tacc_clks * 100 * speedup_ratio;
 
 	timeout_us = data.timeout_ns / 1000;
 	timeout_us += data.timeout_clks * 1000 /
