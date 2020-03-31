@@ -18,6 +18,7 @@
 #include <linux/kthread.h>
 #include <linux/wait.h>
 #include <linux/delay.h>
+#include <linux/dynaccel.h>
 
 #include <linux/mmc/core.h>
 #include <linux/mmc/host.h>
@@ -80,9 +81,9 @@ static int sdio_irq_thread(void *_host)
 	 * asynchronous notification of pending SDIO card interrupts
 	 * hence we poll for them in that case.
 	 */
-	idle_period = msecs_to_jiffies(10);
+	idle_period = msecs_to_jiffies(10 * speedup_ratio);
 	period = (host->caps & MMC_CAP_SDIO_IRQ) ?
-		MAX_SCHEDULE_TIMEOUT : idle_period;
+		MAX_SCHEDULE_TIMEOUT * speedup_ratio : idle_period;
 
 	pr_debug("%s: IRQ thread started (poll period = %lu jiffies)\n",
 		 mmc_hostname(host), period);
@@ -114,7 +115,7 @@ static int sdio_irq_thread(void *_host)
 		if (ret < 0) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			if (!kthread_should_stop())
-				schedule_timeout(HZ);
+				schedule_timeout(HZ * speedup_ratio);
 			set_current_state(TASK_RUNNING);
 		}
 
