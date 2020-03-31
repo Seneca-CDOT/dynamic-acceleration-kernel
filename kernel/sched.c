@@ -72,6 +72,7 @@
 #include <linux/ctype.h>
 #include <linux/ftrace.h>
 #include <linux/clocksource.h>
+#include <linux/dynaccel.h>
 
 #include <asm/tlb.h>
 #include <asm/irq_regs.h>
@@ -3251,7 +3252,7 @@ calc_load(unsigned long load, unsigned long exp, unsigned long active)
  */
 void calc_global_load(void)
 {
-	unsigned long upd = calc_load_update + 10;
+	unsigned long upd = calc_load_update + 10 * speedup_ratio;
 	long active;
 
 	if (time_before(jiffies, upd))
