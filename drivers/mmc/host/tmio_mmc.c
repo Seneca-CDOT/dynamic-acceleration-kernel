@@ -32,6 +32,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mfd/core.h>
 #include <linux/mfd/tmio.h>
+#include <linux/dynaccel.h>
 
 #include "tmio_mmc.h"
 
@@ -449,7 +450,7 @@ static void tmio_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	}
 
 	/* Let things settle. delay taken from winCE driver */
-	udelay(140);
+	udelay(140 * speedup_ratio);
 }
 
 static int tmio_mmc_get_ro(struct mmc_host *mmc)
