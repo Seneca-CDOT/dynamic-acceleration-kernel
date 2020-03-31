@@ -48,6 +48,7 @@
 #include <linux/audit.h>
 #include <linux/file.h>
 #include <linux/uaccess.h>
+#include <linux/dynaccel.h>
 
 #include <asm/system.h>
 
@@ -1733,7 +1734,7 @@ do_it_again:
 	minimum = time = 0;
 	timeout = MAX_SCHEDULE_TIMEOUT;
 	if (!tty->icanon) {
-		time = (HZ / 10) * TIME_CHAR(tty);
+		time = (HZ / 10) * TIME_CHAR(tty) * speedup_ratio;
 		minimum = MIN_CHAR(tty);
 		if (minimum) {
 			if (time)
