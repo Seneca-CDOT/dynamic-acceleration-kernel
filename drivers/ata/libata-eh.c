@@ -44,6 +44,7 @@
 #include "../scsi/scsi_transport_api.h"
 
 #include <linux/libata.h>
+#include <linux/dynaccel.h>
 
 #include "libata.h"
 
@@ -841,7 +842,7 @@ void ata_port_wait_eh(struct ata_port *ap)
 
 	/* make sure SCSI EH is complete */
 	if (scsi_host_in_recovery(ap->scsi_host)) {
-		ata_msleep(ap, 10);
+		ata_msleep(ap, 10 * speedup_ratio);
 		goto retry;
 	}
 }
@@ -891,7 +892,7 @@ void ata_eh_fastdrain_timerfn(unsigned long arg)
 		/* some qcs have finished, give it another chance */
 		ap->fastdrain_cnt = cnt;
 		ap->fastdrain_timer.expires =
-			ata_deadline(jiffies, ATA_EH_FASTDRAIN_INTERVAL);
+			ata_deadline(jiffies, ATA_EH_FASTDRAIN_INTERVAL * speedup_ratio);
 		add_timer(&ap->fastdrain_timer);
 	}
 
@@ -932,7 +933,7 @@ static void ata_eh_set_pending(struct ata_port *ap, int fastdrain)
 	/* activate fast drain */
 	ap->fastdrain_cnt = cnt;
 	ap->fastdrain_timer.expires =
-		ata_deadline(jiffies, ATA_EH_FASTDRAIN_INTERVAL);
+		ata_deadline(jiffies, ATA_EH_FASTDRAIN_INTERVAL * speedup_ratio);
 	add_timer(&ap->fastdrain_timer);
 }
 
@@ -1929,7 +1930,7 @@ static int speed_down_verdict_cb(struct ata_ering_entry *ent, void *void_arg)
  */
 static unsigned int ata_eh_speed_down_verdict(struct ata_device *dev)
 {
-	const u64 j5mins = 5LLU * 60 * HZ, j10mins = 10LLU * 60 * HZ;
+	const u64 j5mins = 5LLU * 60 * HZ * speedup_ratio, j10mins = 10LLU * 60 * HZ;
 	u64 j64 = get_jiffies_64();
 	struct speed_down_verdict_arg arg;
 	unsigned int verdict = 0;
@@ -2646,7 +2647,7 @@ int ata_eh_reset(struct ata_link *link, int classify,
 
 	if (prereset) {
 		unsigned long deadline = ata_deadline(jiffies,
-						      ATA_EH_PRERESET_TIMEOUT);
+						      ATA_EH_PRERESET_TIMEOUT * speedup_ratio);
 
 		if (slave) {
 			sehc->i.action &= ~ATA_EH_RESET;
