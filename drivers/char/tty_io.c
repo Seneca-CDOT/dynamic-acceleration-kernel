@@ -106,6 +106,7 @@
 
 #include <linux/kmod.h>
 #include <linux/nsproxy.h>
+#include <linux/dynaccel.h>
 
 #undef TTY_DEBUG_HANGUP
 
@@ -2747,7 +2748,7 @@ void initialize_tty_struct(struct tty_struct *tty,
 	tty_ldisc_init(tty);
 	tty->session = NULL;
 	tty->pgrp = NULL;
-	tty->overrun_time = jiffies;
+	tty->overrun_time = jiffies * speedup_ratio;
 	tty->buf.head = tty->buf.tail = NULL;
 	tty_buffer_init(tty);
 	mutex_init(&tty->termios_mutex);
