@@ -24,6 +24,7 @@
 #include <linux/delay.h>
 #include <linux/clk.h>
 #include <linux/io.h>
+#include <linux/dynaccel.h>
 
 #include <asm/dma.h>
 #include <asm/irq.h>
@@ -208,7 +209,7 @@ static int imxmci_busy_wait_for_status(struct imxmci_host *host,
 				where, *pstat, stat_mask);
 			return -1;
 		}
-		udelay(2);
+		udelay(2 * speedup_ratio);
 		*pstat |= readw(host->base + MMC_REG_STATUS);
 	}
 	if (!loops)
@@ -551,7 +552,7 @@ static int imxmci_cpu_driven_data(struct imxmci_host *host, unsigned int *pstat)
 	dev_dbg(mmc_dev(host->mmc), "imxmci_cpu_driven_data running STATUS = 0x%x\n",
 		stat);
 
-	udelay(20);	/* required for clocks < 8MHz*/
+	udelay(20 * speedup_ratio);	/* required for clocks < 8MHz*/
 
 	if (host->dma_dir == DMA_FROM_DEVICE) {
 		imxmci_busy_wait_for_status(host, &stat,
@@ -563,12 +564,12 @@ static int imxmci_cpu_driven_data(struct imxmci_host *host, unsigned int *pstat)
 		       !(stat & STATUS_TIME_OUT_READ) &&
 		       (host->data_cnt < 512)) {
 
-			udelay(20);	/* required for clocks < 8MHz*/
+			udelay(20 * speedup_ratio);	/* required for clocks < 8MHz*/
 
 			for (i = burst_len; i >= 2 ; i -= 2) {
 				u16 data;
 				data = readw(host->base + MMC_REG_BUFFER_ACCESS);
-				udelay(10);	/* required for clocks < 8MHz*/
+				udelay(10 * speedup_ratio);	/* required for clocks < 8MHz*/
 				if (host->data_cnt+2 <= host->dma_size) {
 					*(host->data_ptr++) = data;
 				} else {
@@ -930,7 +931,7 @@ static void imxmci_check_status(unsigned long data)
 
 	}
 
-	mod_timer(&host->timer, jiffies + (HZ>>1));
+	mod_timer(&host->timer, jiffies + (HZ*speedup_ratio>>1));
 }
 
 static int __init imxmci_probe(struct platform_device *pdev)
@@ -1048,7 +1049,7 @@ static int __init imxmci_probe(struct platform_device *pdev)
 	host->timer.data = (unsigned long)host;
 	host->timer.function = imxmci_check_status;
 	add_timer(&host->timer);
-	mod_timer(&host->timer, jiffies + (HZ >> 1));
+	mod_timer(&host->timer, jiffies + (HZ * speedup_ratio >> 1));
 
 	platform_set_drvdata(pdev, mmc);
 
