@@ -24,6 +24,7 @@
 #include <linux/interrupt.h>
 #include <linux/blkdev.h>
 #include <linux/delay.h>
+#include <linux/dynaccel.h>
 #include <linux/jiffies.h>
 
 #include <scsi/scsi.h>
@@ -154,7 +155,7 @@ enum blk_eh_timer_return scsi_times_out(struct request *req)
 	enum blk_eh_timer_return rtn = BLK_EH_NOT_HANDLED;
 
 	trace_scsi_dispatch_cmd_timeout(scmd);
-	scsi_log_completion(scmd, TIMEOUT_ERROR);
+	scsi_log_completion(scmd, TIMEOUT_ERROR * speedup_ratio);
 
 	if (scmd->device->host->eh_deadline != -1 &&
 	    !scmd->device->host->last_reset)
@@ -884,10 +885,11 @@ static int scsi_send_eh_cmnd(struct scsi_cmnd *scmd, unsigned char *cmnd,
 	struct scsi_device *sdev = scmd->device;
 	struct Scsi_Host *shost = sdev->host;
 	DECLARE_COMPLETION_ONSTACK(done);
-	unsigned long timeleft = timeout;
+	int accel_timeout = timeout * speedup_ratio;
+	unsigned long timeleft = accel_timeout;
 	unsigned long flags = 0;
 	struct scsi_eh_save ses;
-	const unsigned long stall_for = msecs_to_jiffies(100);
+	const unsigned long stall_for = msecs_to_jiffies(100) * speedup_ratio;
 	int rtn;
 
 retry:
@@ -913,7 +915,7 @@ retry:
 		timeleft = 0;
 		rtn = NEEDS_RETRY;
 	} else {
-		timeleft = wait_for_completion_timeout(&done, timeout);
+		timeleft = wait_for_completion_timeout(&done, accel_timeout);
 	}
 
 	shost->eh_action = NULL;
@@ -1831,7 +1833,7 @@ static void scsi_eh_lock_door(struct scsi_device *sdev)
 
 	req->cmd_type = REQ_TYPE_BLOCK_PC;
 	req->cmd_flags |= REQ_QUIET;
-	req->timeout = 10 * HZ;
+	req->timeout = 10 * HZ * speedup_ratio;
 	req->retries = 5;
 
 	blk_execute_rq_nowait(req->q, NULL, req, 1, eh_lock_door_done);
