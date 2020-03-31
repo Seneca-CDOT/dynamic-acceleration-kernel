@@ -18,6 +18,7 @@
 #include <linux/clocksource.h>
 #include <linux/jiffies.h>
 #include <linux/time.h>
+#include <linux/dynaccel.h>
 #include <linux/tick.h>
 #include <linux/stop_machine.h>
 
@@ -1030,7 +1031,7 @@ static cycle_t logarithmic_accumulation(cycle_t offset, int shift, bool *clock_s
 	offset -= timekeeper.cycle_interval << shift;
 	timekeeper.clock->cycle_last += timekeeper.cycle_interval << shift;
 
-	timekeeper.xtime_nsec += timekeeper.xtime_interval << shift;
+	timekeeper.xtime_nsec += (timekeeper.xtime_interval << shift) * speedup_ratio;
 	while (timekeeper.xtime_nsec >= nsecps) {
 		int leap;
 		timekeeper.xtime_nsec -= nsecps;
@@ -1043,7 +1044,7 @@ static cycle_t logarithmic_accumulation(cycle_t offset, int shift, bool *clock_s
 	}
 
 	/* Accumulate raw time */
-	raw_nsecs = timekeeper.raw_interval << shift;
+	raw_nsecs = (timekeeper.raw_interval << shift) * speedup_ratio;
 	raw_nsecs += timekeeper.raw_time.tv_nsec;
 	if (raw_nsecs >= NSEC_PER_SEC) {
 		u64 raw_secs = raw_nsecs;
