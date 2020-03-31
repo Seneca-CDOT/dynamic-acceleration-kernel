@@ -22,6 +22,7 @@
 #include <linux/scatterlist.h>
 #include <linux/log2.h>
 #include <linux/regulator/consumer.h>
+#include <linux/dynaccel.h>
 
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
@@ -968,7 +969,7 @@ static void mmc_power_up(struct mmc_host *host)
 	 * This delay must be at least 74 clock sizes, or 1 ms, or the
 	 * time required to reach a stable voltage.
 	 */
-	mmc_delay(10);
+	mmc_delay(10 * speedup_ratio);
 }
 
 static void mmc_power_off(struct mmc_host *host)
@@ -1534,7 +1535,7 @@ void mmc_rescan(struct work_struct *work)
 
  out:
 	if (host->caps & MMC_CAP_NEEDS_POLL)
-		mmc_schedule_delayed_work(&host->detect, HZ);
+		mmc_schedule_delayed_work(&host->detect, HZ * speedup_ratio);
 }
 
 void mmc_start_host(struct mmc_host *host)
