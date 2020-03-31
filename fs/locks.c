@@ -127,6 +127,7 @@
 #include <linux/time.h>
 #include <linux/rcupdate.h>
 #include <linux/pid_namespace.h>
+#include <linux/dynaccel.h>
 
 #include <asm/uaccess.h>
 
@@ -1226,7 +1227,7 @@ int __break_lease(struct inode *inode, unsigned int mode)
 
 	break_time = 0;
 	if (lease_break_time > 0) {
-		break_time = jiffies + lease_break_time * HZ;
+		break_time = jiffies + (lease_break_time * HZ) * speedup_ratio;
 		if (break_time == 0)
 			break_time++;	/* so that 0 means no break time */
 	}
