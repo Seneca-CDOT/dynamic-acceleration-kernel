@@ -24,6 +24,8 @@
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/host.h>
 
+#include <linux/dynaccel.h>
+
 #include "sdhci.h"
 
 #define DRIVER_NAME "sdhci"
@@ -359,7 +361,7 @@ static void sdhci_transfer_pio(struct sdhci_host *host)
 
 	while (sdhci_readl(host, SDHCI_PRESENT_STATE) & mask) {
 		if (host->quirks & SDHCI_QUIRK_PIO_NEEDS_DELAY)
-			udelay(100);
+			udelay(100 * speedup_ratio);
 
 		if (host->data->flags & MMC_DATA_READ)
 			sdhci_read_block_pio(host);
@@ -919,7 +921,7 @@ static void sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 		mdelay(1);
 	}
 
-	mod_timer(&host->timer, jiffies + 10 * HZ);
+	mod_timer(&host->timer, jiffies + 10 * HZ * speedup_ratio);
 
 	host->cmd = cmd;
 
