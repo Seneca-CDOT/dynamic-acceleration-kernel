@@ -10,6 +10,7 @@
 #include <linux/init.h>
 #include <linux/blkdev.h>
 #include <linux/device.h>
+#include <linux/dynaccel.h>
 
 #include <scsi/scsi.h>
 #include <scsi/scsi_device.h>
@@ -605,7 +606,7 @@ sdev_store_timeout (struct device *dev, struct device_attribute *attr,
 	int timeout;
 	sdev = to_scsi_device(dev);
 	sscanf (buf, "%d\n", &timeout);
-	blk_queue_rq_timeout(sdev->request_queue, timeout * HZ);
+	blk_queue_rq_timeout(sdev->request_queue, timeout * HZ * speedup_ratio);
 	return count;
 }
 static DEVICE_ATTR(timeout, S_IRUGO | S_IWUSR, sdev_show_timeout, sdev_store_timeout);
