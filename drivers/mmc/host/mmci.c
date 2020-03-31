@@ -21,6 +21,7 @@
 #include <linux/amba/bus.h>
 #include <linux/clk.h>
 #include <linux/scatterlist.h>
+#include <linux/dynaccel.h>
 #include <linux/gpio.h>
 #include <linux/amba/mmci.h>
 #include <linux/regulator/consumer.h>
@@ -160,7 +161,7 @@ mmci_start_command(struct mmci_host *host, struct mmc_command *cmd, u32 c)
 
 	if (readl(base + MMCICOMMAND) & MCI_CPSM_ENABLE) {
 		writel(0, base + MMCICOMMAND);
-		udelay(1);
+		udelay(1 * speedup_ratio);
 	}
 
 	c |= cmd->opcode | MCI_CPSM_ENABLE;
@@ -548,7 +549,7 @@ static void mmci_check_status(unsigned long data)
 		mmc_detect_change(host->mmc, 0);
 
 	host->oldstat = status;
-	mod_timer(&host->timer, jiffies + HZ);
+	mod_timer(&host->timer, jiffies + HZ * speedup_ratio);
 }
 
 static int __devinit mmci_probe(struct amba_device *dev, struct amba_id *id)
