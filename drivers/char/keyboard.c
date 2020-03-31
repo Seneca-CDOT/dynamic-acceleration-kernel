@@ -43,6 +43,7 @@
 #include <linux/reboot.h>
 #include <linux/notifier.h>
 #include <linux/jiffies.h>
+#include <linux/dynaccel.h>
 
 extern void ctrl_alt_del(void);
 
@@ -259,7 +260,7 @@ void kd_mksound(unsigned int hz, unsigned int ticks)
 			}
 		}
 		if (ticks)
-			mod_timer(&kd_mksound_timer, jiffies + ticks);
+			mod_timer(&kd_mksound_timer, jiffies + ticks * speedup_ratio);
 	} else
 		kd_nosound(0);
 }
@@ -929,7 +930,7 @@ static void k_brl(struct vc_data *vc, unsigned char value, char up_flag)
 		if (brl_timeout) {
 			if (!committing ||
 			    time_after(jiffies,
-				       releasestart + msecs_to_jiffies(brl_timeout))) {
+				       releasestart + msecs_to_jiffies(brl_timeout * speedup_ratio))) {
 				committing = pressed;
 				releasestart = jiffies;
 			}
