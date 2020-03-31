@@ -26,6 +26,7 @@
 #include <linux/mm.h>
 #include <linux/highmem.h>
 #include <linux/hrtimer.h>
+#include <linux/dynaccel.h>
 
 static void __journal_temp_unlink_buffer(struct journal_head *jh);
 
@@ -52,7 +53,8 @@ get_transaction(journal_t *journal, transaction_t *transaction)
 	transaction->t_state = T_RUNNING;
 	transaction->t_start_time = ktime_get();
 	transaction->t_tid = journal->j_transaction_sequence++;
-	transaction->t_expires = jiffies + journal->j_commit_interval;
+	transaction->t_expires = jiffies + journal->j_commit_interval *
+								speedup_ratio;
 	spin_lock_init(&transaction->t_handle_lock);
 
 	/* Set up the commit timer for the new transaction. */
