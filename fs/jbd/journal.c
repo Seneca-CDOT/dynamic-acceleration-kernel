@@ -36,6 +36,7 @@
 #include <linux/poison.h>
 #include <linux/proc_fs.h>
 #include <linux/debugfs.h>
+#include <linux/dynaccel.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/jbd.h>
@@ -181,7 +182,7 @@ loop:
 			should_sleep = 0;
 		transaction = journal->j_running_transaction;
 		if (transaction && time_after_eq(jiffies,
-						transaction->t_expires))
+					transaction->t_expires * speedup_ratio))
 			should_sleep = 0;
 		if (journal->j_flags & JFS_UNMOUNT)
 			should_sleep = 0;
@@ -199,7 +200,8 @@ loop:
 	 * Were we woken up by a commit wakeup event?
 	 */
 	transaction = journal->j_running_transaction;
-	if (transaction && time_after_eq(jiffies, transaction->t_expires)) {
+	if (transaction && time_after_eq(jiffies, transaction->t_expires *
+							speedup_ratio)) {
 		journal->j_commit_request = transaction->t_tid;
 		jbd_debug(1, "woke because of timeout\n");
 	}
@@ -1760,7 +1762,7 @@ static struct journal_head *journal_alloc_journal_head(void)
 	ret = kmem_cache_alloc(journal_head_cache, GFP_NOFS);
 	if (ret == NULL) {
 		jbd_debug(1, "out of memory for journal_head\n");
-		if (time_after(jiffies, last_warning + 5*HZ)) {
+		if (time_after(jiffies, last_warning + 5*HZ * speedup_ratio)) {
 			printk(KERN_NOTICE "ENOMEM in %s, retrying.\n",
 			       __func__);
 			last_warning = jiffies;
