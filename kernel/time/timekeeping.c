@@ -1320,7 +1320,7 @@ EXPORT_SYMBOL_GPL(ktime_get_monotonic_offset);
  */
 void do_timer(unsigned long ticks)
 {
-	jiffies_64 += ticks;
+	jiffies_64 += ticks * speedup_ratio;
 	update_wall_time();
 	calc_global_load();
 }
