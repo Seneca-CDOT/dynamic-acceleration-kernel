@@ -163,6 +163,7 @@ enum
 	KERN_NMI_WATCHDOG=75, /* int: enable/disable nmi watchdog */
 	KERN_PANIC_ON_NMI=76, /* int: whether we will panic on an unrecovered */
 	KERN_PANIC_ON_WARN=77, /* int: call panic() in WARN() functions */
+	KERN_ACCEL=78, /* int: kernel acceleration multiplier; acceptable range is 1-1000 */
 };
 
 
