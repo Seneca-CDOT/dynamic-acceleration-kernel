@@ -22,6 +22,7 @@
 #include <linux/poll.h>
 #include <linux/device.h>
 #include <linux/mutex.h>
+#include <linux/dynaccel.h>
 #include <linux/rcupdate.h>
 #include <linux/smp_lock.h>
 #include <linux/nospec.h>
@@ -118,7 +119,7 @@ static void input_repeat_key(unsigned long data)
 
 		if (dev->rep[REP_PERIOD])
 			mod_timer(&dev->timer, jiffies +
-					msecs_to_jiffies(dev->rep[REP_PERIOD]));
+					msecs_to_jiffies(dev->rep[REP_PERIOD]) * speedup_ratio);
 	}
 
 	spin_unlock_irqrestore(&dev->event_lock, flags);
@@ -131,7 +132,7 @@ static void input_start_autorepeat(struct input_dev *dev, int code)
 	    dev->timer.data) {
 		dev->repeat_key = code;
 		mod_timer(&dev->timer,
-			  jiffies + msecs_to_jiffies(dev->rep[REP_DELAY]));
+			  jiffies + msecs_to_jiffies(dev->rep[REP_DELAY]) * speedup_ratio);
 	}
 }
 
