@@ -38,6 +38,7 @@
 #include <linux/vt_kern.h>
 #include <linux/kbd_diacr.h>
 #include <linux/selection.h>
+#include <linux/dynaccel.h>
 
 char vt_dont_switch;
 extern struct tty_driver *console_driver;
@@ -559,7 +560,7 @@ int vt_ioctl(struct tty_struct *tty, struct file * file,
 		 * Generate the tone for the appropriate number of ticks.
 		 * If the time is zero, turn off sound ourselves.
 		 */
-		ticks = HZ * ((arg >> 16) & 0xffff) / 1000;
+		ticks = HZ * speedup_ratio * ((arg >> 16) & 0xffff) / 1000;
 		count = ticks ? (arg & 0xffff) : 0;
 		/* FIXME: This is an old broken API but we need to keep it
 		   supported and somehow separate the historic advertised
