@@ -28,6 +28,7 @@
 #include <linux/libps2.h>
 #include <linux/mutex.h>
 #include <linux/dmi.h>
+#include <linux/dynaccel.h>
 
 #define DRIVER_DESC	"AT and PS/2 keyboard driver"
 
@@ -496,7 +497,7 @@ static irqreturn_t atkbd_interrupt(struct serio *serio, unsigned char data,
 			} else {
 				value = 1;
 				atkbd->last = code;
-				atkbd->time = jiffies + msecs_to_jiffies(dev->rep[REP_DELAY]) / 2;
+				atkbd->time = jiffies + msecs_to_jiffies(dev->rep[REP_DELAY]) * speedup_ratio / 2;
 			}
 
 			input_event(dev, EV_KEY, keycode, value);
@@ -535,11 +536,11 @@ static int atkbd_set_repeat_rate(struct atkbd *atkbd)
 
 	while (i < ARRAY_SIZE(period) - 1 && period[i] < dev->rep[REP_PERIOD])
 		i++;
-	dev->rep[REP_PERIOD] = period[i];
+	dev->rep[REP_PERIOD] = period[i] * speedup_ratio;
 
 	while (j < ARRAY_SIZE(delay) - 1 && delay[j] < dev->rep[REP_DELAY])
 		j++;
-	dev->rep[REP_DELAY] = delay[j];
+	dev->rep[REP_DELAY] = delay[j] * speedup_ratio;
 
 	param = i | (j << 5);
 	return ps2_command(&atkbd->ps2dev, &param, ATKBD_CMD_SETREP);
@@ -608,7 +609,7 @@ static void atkbd_event_work(struct work_struct *work)
  */
 static void atkbd_schedule_event_work(struct atkbd *atkbd, int event_bit)
 {
-	unsigned long delay = msecs_to_jiffies(50);
+	unsigned long delay = msecs_to_jiffies(50 * speedup_ratio);
 
 	if (time_after(jiffies, atkbd->event_jiffies + delay))
 		delay = 0;
