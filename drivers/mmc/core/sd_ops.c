@@ -11,6 +11,7 @@
 
 #include <linux/types.h>
 #include <linux/scatterlist.h>
+#include <linux/dynaccel.h>
 
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
@@ -184,7 +185,7 @@ int mmc_send_app_op_cond(struct mmc_host *host, u32 ocr, u32 *rocr)
 
 		err = -ETIMEDOUT;
 
-		mmc_delay(10);
+		mmc_delay(10 * speedup_ratio);
 	}
 
 	if (rocr && !mmc_host_is_spi(host))
