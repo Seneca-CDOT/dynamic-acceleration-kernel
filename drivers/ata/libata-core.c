@@ -58,6 +58,7 @@
 #include <linux/io.h>
 #include <linux/async.h>
 #include <linux/log2.h>
+#include <linux/dynaccel.h>
 #include <scsi/scsi.h>
 #include <scsi/scsi_cmnd.h>
 #include <scsi/scsi_host.h>
@@ -1796,7 +1797,7 @@ unsigned ata_exec_internal_sg(struct ata_device *dev,
 
 	if (!timeout) {
 		if (ata_probe_timeout)
-			timeout = ata_probe_timeout * 1000;
+			timeout = ata_probe_timeout * 1000 * speedup_ratio;
 		else {
 			timeout = ata_internal_cmd_timeout(dev, command);
 			auto_timeout = 1;
@@ -3532,7 +3533,7 @@ int ata_wait_ready(struct ata_link *link, unsigned long deadline,
 		   int (*check_ready)(struct ata_link *link))
 {
 	unsigned long start = jiffies;
-	unsigned long nodev_deadline = ata_deadline(start, ATA_TMOUT_FF_WAIT);
+	unsigned long nodev_deadline = ata_deadline(start, ATA_TMOUT_FF_WAIT * speedup_ratio);
 	int warned = 0;
 
 	/* Slave readiness can't be tested separately from master.  On
@@ -3577,15 +3578,15 @@ int ata_wait_ready(struct ata_link *link, unsigned long deadline,
 		if (time_after(now, deadline))
 			return -EBUSY;
 
-		if (!warned && time_after(now, start + 5 * HZ) &&
-		    (deadline - now > 3 * HZ)) {
+		if (!warned && time_after(now, start + 5 * HZ * speedup_ratio) &&
+		    (deadline - now > 3 * HZ * speedup_ratio)) {
 			ata_link_printk(link, KERN_WARNING,
 				"link is slow to respond, please be patient "
 				"(ready=%d)\n", tmp);
 			warned = 1;
 		}
 
-		ata_msleep(link->ap, 50);
+		ata_msleep(link->ap, 50 * speedup_ratio);
 	}
 }
 
@@ -3606,7 +3607,7 @@ int ata_wait_ready(struct ata_link *link, unsigned long deadline,
 int ata_wait_after_reset(struct ata_link *link, unsigned long deadline,
 				int (*check_ready)(struct ata_link *link))
 {
-	ata_msleep(link->ap, ATA_WAIT_AFTER_RESET);
+	ata_msleep(link->ap, ATA_WAIT_AFTER_RESET * speedup_ratio);
 
 	return ata_wait_ready(link, deadline, check_ready);
 }
@@ -3654,7 +3655,7 @@ int sata_link_debounce(struct ata_link *link, const unsigned long *params,
 	last_jiffies = jiffies;
 
 	while (1) {
-		ata_msleep(link->ap, interval);
+		ata_msleep(link->ap, interval * speedup_ratio);
 		if ((rc = sata_scr_read(link, SCR_STATUS, &cur)))
 			return rc;
 		cur &= 0xf;
@@ -3664,7 +3665,7 @@ int sata_link_debounce(struct ata_link *link, const unsigned long *params,
 			if (cur == 1 && time_before(jiffies, deadline))
 				continue;
 			if (time_after(jiffies,
-				       ata_deadline(last_jiffies, duration)))
+				       ata_deadline(last_jiffies, duration * speedup_ratio)))
 				return 0;
 			continue;
 		}
@@ -3719,7 +3720,7 @@ int sata_link_resume(struct ata_link *link, const unsigned long *params,
 		 * immediately after resuming.  Delay 200ms before
 		 * debouncing.
 		 */
-		ata_msleep(link->ap, 200);
+		ata_msleep(link->ap, 200 * speedup_ratio);
 
 		/* is SControl restored correctly? */
 		if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
@@ -3857,7 +3858,7 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 	/* Couldn't find anything in SATA I/II specs, but AHCI-1.1
 	 * 10.4.2 says at least 1 ms.
 	 */
-	ata_msleep(link->ap, 1);
+	ata_msleep(link->ap, 1 * speedup_ratio);
 
 	/* bring link back */
 	rc = sata_link_resume(link, timing, deadline);
@@ -3881,7 +3882,7 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 			unsigned long pmp_deadline;
 
 			pmp_deadline = ata_deadline(jiffies,
-						    ATA_TMOUT_PMP_SRST_WAIT);
+						    ATA_TMOUT_PMP_SRST_WAIT * speedup_ratio);
 			if (time_after(pmp_deadline, deadline))
 				pmp_deadline = deadline;
 			ata_wait_ready(link, pmp_deadline, check_ready);
@@ -6630,7 +6631,7 @@ int ata_ratelimit(void)
 
 	if (time_after(jiffies, ratelimit_time)) {
 		rc = 1;
-		ratelimit_time = jiffies + (HZ/5);
+		ratelimit_time = jiffies + (HZ/5) * speedup_ratio;
 	} else
 		rc = 0;
 
@@ -6705,7 +6706,7 @@ u32 ata_wait_register(struct ata_port *ap, void __iomem *reg, u32 mask, u32 val,
 	deadline = ata_deadline(jiffies, timeout);
 
 	while ((tmp & mask) == val && time_before(jiffies, deadline)) {
-		ata_msleep(ap, interval);
+		ata_msleep(ap, interval * speedup_ratio);
 		tmp = ioread32(reg);
 	}
 
