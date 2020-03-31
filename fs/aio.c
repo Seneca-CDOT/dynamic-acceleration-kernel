@@ -31,6 +31,7 @@
 #include <linux/highmem.h>
 #include <linux/workqueue.h>
 #include <linux/security.h>
+#include <linux/dynaccel.h>
 #include <linux/eventfd.h>
 #include <linux/blkdev.h>
 #include <linux/mempool.h>
@@ -1074,7 +1075,8 @@ static inline void init_timeout(struct aio_timeout *to)
 static inline void set_timeout(long start_jiffies, struct aio_timeout *to,
 			       const struct timespec *ts)
 {
-	to->timer.expires = start_jiffies + timespec_to_jiffies(ts);
+	to->timer.expires = start_jiffies + timespec_to_jiffies(ts) *
+								speedup_ratio;
 	if (time_after(to->timer.expires, jiffies))
 		add_timer(&to->timer);
 	else
