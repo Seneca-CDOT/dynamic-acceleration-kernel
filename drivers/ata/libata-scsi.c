@@ -47,6 +47,7 @@
 #include <linux/libata.h>
 #include <linux/hdreg.h>
 #include <linux/uaccess.h>
+#include <linux/dynaccel.h>
 #include <linux/suspend.h>
 #include <asm/unaligned.h>
 
@@ -520,7 +521,7 @@ int ata_cmd_ioctl(struct scsi_device *scsidev, void __user *arg)
 	/* Good values for timeout and retries?  Values below
 	   from scsi_ioctl_send_command() for default case... */
 	cmd_result = scsi_execute(scsidev, scsi_cmd, data_dir, argbuf, argsize,
-				  sensebuf, (10*HZ), 5, 0, NULL);
+				  sensebuf, (10*HZ)*speedup_ratio, 5, 0, NULL);
 
 	if (driver_byte(cmd_result) == DRIVER_SENSE) {/* sense data available */
 		u8 *desc = sensebuf + 8;
@@ -606,7 +607,7 @@ int ata_task_ioctl(struct scsi_device *scsidev, void __user *arg)
 	/* Good values for timeout and retries?  Values below
 	   from scsi_ioctl_send_command() for default case... */
 	cmd_result = scsi_execute(scsidev, scsi_cmd, DMA_NONE, NULL, 0,
-				sensebuf, (10*HZ), 5, 0, NULL);
+				sensebuf, (10*HZ)*speedup_ratio, 5, 0, NULL);
 
 	if (driver_byte(cmd_result) == DRIVER_SENSE) {/* sense data available */
 		u8 *desc = sensebuf + 8;
@@ -3483,7 +3484,7 @@ void ata_scsi_scan_host(struct ata_port *ap, int sync)
 		 * any progress, sleep briefly and repeat.
 		 */
 		if (dev != last_failed_dev) {
-			msleep(100);
+			msleep(100 * speedup_ratio);
 			last_failed_dev = dev;
 			goto repeat;
 		}
@@ -3492,7 +3493,7 @@ void ata_scsi_scan_host(struct ata_port *ap, int sync)
 		 * a few more chances.
 		 */
 		if (--tries) {
-			msleep(100);
+			msleep(100 * speedup_ratio);
 			goto repeat;
 		}
 
@@ -3502,7 +3503,7 @@ void ata_scsi_scan_host(struct ata_port *ap, int sync)
 	}
 
 	queue_delayed_work(ata_aux_wq, &ap->hotplug_task,
-			   round_jiffies_relative(HZ));
+			   round_jiffies_relative(HZ) * speedup_ratio);
 }
 
 /**
