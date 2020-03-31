@@ -15,6 +15,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
+#include <linux/dynaccel.h>
 
 #include "core.h"
 #include "mmc_ops.h"
@@ -109,7 +110,7 @@ int mmc_go_idle(struct mmc_host *host)
 	 */
 	if (!mmc_host_is_spi(host)) {
 		mmc_set_chip_select(host, MMC_CS_HIGH);
-		mmc_delay(1);
+		mmc_delay(1 * speedup_ratio);
 	}
 
 	memset(&cmd, 0, sizeof(struct mmc_command));
@@ -120,11 +121,11 @@ int mmc_go_idle(struct mmc_host *host)
 
 	err = mmc_wait_for_cmd(host, &cmd, 0);
 
-	mmc_delay(1);
+	mmc_delay(1 * speedup_ratio);
 
 	if (!mmc_host_is_spi(host)) {
 		mmc_set_chip_select(host, MMC_CS_DONTCARE);
-		mmc_delay(1);
+		mmc_delay(1 * speedup_ratio);
 	}
 
 	host->use_spi_crc = 0;
@@ -165,7 +166,7 @@ int mmc_send_op_cond(struct mmc_host *host, u32 ocr, u32 *rocr)
 
 		err = -ETIMEDOUT;
 
-		mmc_delay(10);
+		mmc_delay(10 * speedup_ratio);
 	}
 
 	if (rocr && !mmc_host_is_spi(host))
