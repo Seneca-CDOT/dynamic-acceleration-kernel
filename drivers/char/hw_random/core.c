@@ -41,6 +41,7 @@
 #include <linux/init.h>
 #include <linux/miscdevice.h>
 #include <linux/delay.h>
+#include <linux/dynaccel.h>
 #include <asm/uaccess.h>
 
 
@@ -139,7 +140,7 @@ static ssize_t rng_dev_read(struct file *filp, char __user *buf,
 		}
 
 		if (need_resched())
-			schedule_timeout_interruptible(1);
+			schedule_timeout_interruptible(1 * speedup_ratio);
 		err = -ERESTARTSYS;
 		if (signal_pending(current))
 			goto out;
