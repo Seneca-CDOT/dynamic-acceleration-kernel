@@ -17,6 +17,7 @@
 #include <linux/bitops.h>
 #include <linux/delay.h>
 #include <linux/module.h>
+#include <linux/dynaccel.h>
 
 void tty_port_init(struct tty_port *port)
 {
@@ -331,10 +332,10 @@ int tty_port_close_start(struct tty_port *port, struct tty_struct *tty, struct f
 		long timeout;
 
 		if (bps > 1200)
-			timeout = max_t(long, (HZ * 10 * port->drain_delay) / bps,
+			timeout = max_t(long, (HZ * 10 * port->drain_delay * speedup_ratio) / bps,
 								HZ / 10);
 		else
-			timeout = 2 * HZ;
+			timeout = 2 * HZ * speedup_ratio;
 		schedule_timeout_interruptible(timeout);
 	}
 	/* Don't call port->drop for the last reference. Callers will want
@@ -360,7 +361,7 @@ void tty_port_close_end(struct tty_port *port, struct tty_struct *tty)
 		spin_unlock_irqrestore(&port->lock, flags);
 		if (port->close_delay) {
 			msleep_interruptible(
-				jiffies_to_msecs(port->close_delay));
+				jiffies_to_msecs(port->close_delay * speedup_ratio));
 		}
 		spin_lock_irqsave(&port->lock, flags);
 		wake_up_interruptible(&port->open_wait);
