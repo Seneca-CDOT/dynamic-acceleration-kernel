@@ -1224,14 +1224,6 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= &proc_dointvec,
 	},
 #endif
-	{
-		.ctl_name       = CTL_UNNUMBERED,
-		.procname       = "accel",
-		.data           = &speedup_ratio,
-		.maxlen         = sizeof(int),
-		.mode           = 0644,
-		.proc_handler   = &proc_dointvec,
-	},
 
 /*
  * NOTE: do not add new entries to this table unless you have read
@@ -1245,6 +1237,13 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
 		.extra2		= &one,
+	},
+	{
+		.procname       = "accel",
+		.data           = &speedup_ratio,
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = &proc_dointvec,
 	},
 	{ .ctl_name = 0 }
 };
