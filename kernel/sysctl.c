@@ -1239,6 +1239,7 @@ static struct ctl_table kern_table[] = {
 		.extra2		= &one,
 	},
 	{
+		.ctl_name	= KERN_ACCEL,
 		.procname       = "accel",
 		.data           = &speedup_ratio,
 		.maxlen         = sizeof(int),
